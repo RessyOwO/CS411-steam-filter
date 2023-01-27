@@ -6,8 +6,8 @@
 | ----------- | ---------------------- |
 | TeamID      |        Team-053        |
 | TeamName    |    Anti Dance Club     |
-| Captain     |          TBD           |
-| Captain     |          TBD           |
+| Captain     |       Relena Li        |
+| Captain     |   zhaol3@illinois.edu  |
 | Member1     |       Relena Li        |
 | Member1     |   zhaol3@illinois.edu  |
 | Member2     |       Ritika Patri     |
