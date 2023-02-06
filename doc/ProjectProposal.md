@@ -34,7 +34,7 @@ Our dataset is called “Steam Game Data” and is a csv that consists of variou
 
 
 ## Description of the functionality that your website offers. This is where you talk about what the website delivers. Talk about how a user would interact with the application (i.e., things that one could create, delete, update, or search for). Read the requirements for stages 4 and 5 to see what other functionalities you want to provide to the users. You should include:
-A low-fidelity UI mockup: What do you imagine your final application’s interface might look like? A PowerPoint slide or a pencil sketch on a piece of paper works!
+A low-fidelity UI mockup: What do you imagine your final application’s interface might look like? A PowerPoint slide or a pencil sketch on a piece of paper works! <br>
 ![](https://github.com/cs411-alawini/sp23-cs411-team053-anti-dance-club/blob/main/doc/low-fidelity.png)
 ![](https://github.com/cs411-alawini/sp23-cs411-team053-anti-dance-club/blob/main/doc/low-fidelity2.png)
 
