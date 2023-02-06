@@ -27,4 +27,4 @@
 
 ## Project Summary
 
-This is a summary of the project!
+Searching for a new game to play could be a tedious procedure on the Steam platform if they have rough ideas about the ideal next game in their minds such as the genre of the game, budget, etc. Our project aims to help the gamers to make their decisions more efficiently according to users’ own queries (multiple features), and users can upload their reviews on our webpage for other users’ reference as well. In addition, there might be some curious gamers who want to know some statistics of some games so we provide the visualization of the some statistics to help them better find what they want to play next.
