@@ -214,6 +214,7 @@ def search():
                 )
         return jsonify(games), 200
     elif search_type == "lucky_rating":
+        # advanced query 1
         statement = text(
             """
             SELECT min(g.GameID), g.ResponseName AS GameName, AVG(r.Rating) AS AverageRating, g.ReleaseDate AS ReleaseDate, d.Developer AS DeveloperName
@@ -244,6 +245,7 @@ def search():
 
         return jsonify(games), 200
     elif search_type == "lucky_price":
+        # advanced query 2
         statement = text(
             """
             SELECT ResponseName, PlatformWindows, PlatformLinux, PlatformMac, PriceFinal
