@@ -213,6 +213,73 @@ def search():
                     }
                 )
         return jsonify(games), 200
+    elif search_type == "lucky_rating":
+        statement = text(
+            """
+            SELECT min(g.GameID), g.ResponseName AS GameName, AVG(r.Rating) AS AverageRating, g.ReleaseDate AS ReleaseDate, d.Developer AS DeveloperName
+            FROM Games g JOIN Develops dv ON g.GameID = dv.GameID JOIN Developers d ON dv.DeveloperID = d.DeveloperID JOIN Review r ON g.GameID = r.GameID
+            WHERE r.Rating > 4.0
+            GROUP BY g.ResponseName, g.ReleaseDate, d.Developer
+            ORDER BY AVG(r.Rating) DESC;
+            """
+        )
+
+        result = db.query(statement).fetchall()
+
+        games = {}
+
+        for (
+            game_id,
+            name,
+            average_rating,
+            release_date,
+            developer,
+        ) in result:
+            if name not in games:
+                games[name] = {
+                    "average_rating": average_rating,
+                    "release_date": release_date,
+                    "developer": developer,
+                }
+
+        return jsonify(games), 200
+    elif search_type == "lucky_price":
+        statement = text(
+            """
+            SELECT ResponseName, PlatformWindows, PlatformLinux, PlatformMac, PriceFinal
+            FROM Games
+            WHERE PriceFinal >= (SELECT LowerPrice FROM PriceRange WHERE Grade = 3)
+            AND PriceFinal <= (SELECT UpperPrice FROM PriceRange WHERE Grade = 3)
+            AND PlatformWindows = 'True'
+            UNION
+            SELECT ResponseName, PlatformWindows, PlatformLinux, PlatformMac, PriceFinal
+            FROM Games
+            WHERE PriceFinal >= (SELECT LowerPrice FROM PriceRange WHERE Grade = 3)
+            AND PriceFinal <= (SELECT UpperPrice FROM PriceRange WHERE Grade = 3)
+            AND PlatformLinux = 'True'
+            UNION
+            SELECT ResponseName, PlatformWindows, PlatformLinux, PlatformMac, PriceFinal
+            FROM Games
+            WHERE PriceFinal >= (SELECT LowerPrice FROM PriceRange WHERE Grade = 3)
+            AND PriceFinal <= (SELECT UpperPrice FROM PriceRange WHERE Grade = 3)
+            AND PlatformMac = 'True';
+            """
+        )
+
+        result = db.query(statement).fetchall()
+
+        games = {}
+
+        for name, platform_windows, platform_linux, platform_mac, price in result:
+            if name not in games:
+                games[name] = {
+                    "platform_windows": platform_windows,
+                    "platform_linux": platform_linux,
+                    "platform_mac": platform_mac,
+                    "price": price,
+                }
+
+        return jsonify(games), 200
     else:
         return jsonify({"msg": "Invalid parameters"}), 400
 
