@@ -34,3 +34,8 @@ class User(UserMixin):
 
     def __repr__(self):
         return f"<User {self.id}>"
+    
+    @staticmethod
+    def show_users():
+        statement = text("select * from UserInfo")
+        print(statement)

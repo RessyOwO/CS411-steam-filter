@@ -9,11 +9,12 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
+
 from sqlalchemy import text
 
 import db
 from models import User
-
+active_user = 'test'
 load_dotenv()
 
 app = Flask(__name__)
@@ -21,7 +22,6 @@ app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "super-secret"
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False
 jwt = JWTManager(app)
-
 
 @app.post("/register")
 def register():
@@ -64,6 +64,7 @@ def login():
     user = User.get(username)
 
     if user and user.password == password:
+        active_user = username
         access_token = create_access_token(identity=username)
         return jsonify(access_token=access_token)
 
@@ -213,6 +214,45 @@ def search():
                     }
                 )
         return jsonify(games), 200
+    elif search_type == "max_price":
+        request_username = active_user
+        max_price = float(search)
+        statement = text(
+            """CALL FindGoodGame(:max_price, :username)"""
+        ).bindparams(max_price=max_price, username=request_username)
+
+        result = db.query(statement).fetchall()
+
+        games = {}
+
+        for (
+            game_id,
+            name,
+            release_date,
+            price,
+            languages,
+            developer,
+            rating,
+            attributes,
+        ) in result:
+            if game_id not in games:
+                games[game_id] = {
+                    "name": name,
+                    "release_date": release_date,
+                    "price": price,
+                    "languages": languages,
+                    "developer": developer,
+                    "attributes": attributes.split(","),
+                    "reviews": [],
+                }
+
+            if rating:
+                games[game_id]["reviews"].append(
+                    {
+                        "rating": rating,
+                    }
+                )
+        return jsonify(games), 200
     elif search_type == "lucky_rating":
         # advanced query 1
         statement = text(
@@ -284,7 +324,6 @@ def search():
         return jsonify(games), 200
     else:
         return jsonify({"msg": "Invalid parameters"}), 400
-
 
 @app.route("/profile", methods=["GET", "PATCH"])
 @jwt_required()

@@ -190,6 +190,7 @@ const Search = (): React.ReactElement => {
               <Select width="19rem" onChange={handleSearchTypeChange}>
                 <option value="game">Game</option>
                 <option value="developer">Developer</option>
+                <option value="max_price">Budget</option>
               </Select>
               <InputGroup>
                 <InputLeftElement
@@ -224,6 +225,54 @@ const Search = (): React.ReactElement => {
                       return <ListItem>{item}</ListItem>;
                     })}
                   </UnorderedList>
+                </Box>
+              );
+            })}
+
+          {searchType === "max_price" &&
+            !isLoading &&
+            Object.keys(searchResults).map((key) => {
+              return (
+                <Box>
+                  <Wrap>
+                    <WrapItem>
+                      <Heading size="md">{searchResults[key]["name"]}</Heading>
+                    </WrapItem>
+                    {searchResults[key]["attributes"].map((attribute) => (
+                      <WrapItem>
+                        <Tag
+                          p={2}
+                          size={"sm"}
+                          key={attribute}
+                          variant="solid"
+                          colorScheme="teal"
+                        >
+                          {attribute}
+                        </Tag>
+                      </WrapItem>
+                    ))}
+                  </Wrap>
+                  <Text fontSize="lg">
+                    Developer: {searchResults[key]["developer"]}
+                  </Text>
+                  <Text fontSize="lg">
+                    Release Date: {searchResults[key]["release_date"]}
+                  </Text>
+                  <Text fontSize="lg">
+                    Price: ${searchResults[key]["price"]}
+                  </Text>
+                  <Text fontSize="lg">
+                    Languages: {searchResults[key]["languages"]}
+                  </Text>
+                  <Text fontSize="lg">
+                    Average Rating: {searchResults[key]["reviews"][0]["rating"]}
+                  </Text>
+                  <ReviewModal
+                    gameId={key}
+                    gameName={searchResults[key]["name"]}
+                    searchResults={searchResults}
+                    handleReviewAdd={handleSubmit}
+                  ></ReviewModal>
                 </Box>
               );
             })}
