@@ -1,5 +1,5 @@
 DROP PROCEDURE IF EXISTS 411Project.FindGoodGame;
-CREATE PROCEDURE FindGoodGame(IN PriceMax DOUBLE, IN username VARCHAR(20))
+CREATE PROCEDURE FindGoodGame(IN PriceMax DOUBLE, IN uname VARCHAR(20))
 BEGIN
   DECLARE varGameId INT;
   DECLARE varAvRating DOUBLE;
@@ -8,26 +8,26 @@ BEGIN
   DECLARE varDeveloper VARCHAR(255);
   DECLARE varSupportedLanguages VARCHAR(512);
   DECLARE varPrice DOUBLE;
-  DECLARE varUserDevice VARCHAR(10);
+  DECLARE varUserDevice VARCHAR(20);
   DECLARE exit_loop BOOLEAN DEFAULT FALSE;
   DECLARE varPlatformWindows VARCHAR(10);
   DECLARE varPlatformLinux VARCHAR(10);
   DECLARE varPlatformMac VARCHAR(10);
   DECLARE varShouldSkip VARCHAR(10) DEFAULT 'False';
 
-  -- select only the good games which have average rating > 5
+  -- select only the good games which have average rating > 7
   DECLARE gameCur CURSOR FOR (SELECT g.GameID, ResponseName, ReleaseDate, PriceFinal, SupportedLanguages, d.Developer, temp.avg_rating, PlatformWindows, PlatformLinux, PlatformMac
         FROM Games g NATURAL JOIN Develops dv NATURAL JOIN Developers d
         NATURAL JOIN (SELECT g.GameID, AVG(r.rating) AS avg_rating
                   FROM Games g LEFT JOIN Review r ON g.GameID = r.GameID
                   GROUP BY g.GameID
-                  HAVING AVG(r.Rating) >= 5.0
+                  HAVING AVG(r.Rating) >= 7.0
                   ORDER BY g.GameID) AS temp);
 
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET exit_loop = TRUE;
 
   -- get user device for platform filter
-  SELECT DeviceBackground INTO varUserDevice FROM UserInfo WHERE Username = username LIMIT 1;
+  SELECT DeviceBackground INTO varUserDevice FROM UserInfo WHERE Username = uname;
 
   -- create a temp table called game table to keep only the desired games
   DROP TABLE IF EXISTS GameTable;
@@ -53,14 +53,16 @@ BEGIN
       -- if the user device is not compatible with this game, we should not recommend it
       IF varUserDevice LIKE 'Windows' AND varPlatformWindows LIKE 'False' THEN
         SET varShouldSkip = 'True';
-      ELSEIF varUserDevice LIKE 'Linux' AND varPlatformLinux LIKE 'False' THEN
+	    END IF;
+      IF varUserDevice LIKE 'Mac' AND varPlatformLinux LIKE 'False' THEN
         SET varShouldSkip = 'True';
-      ELSEIF varUserDevice LIKE 'Linux' AND varPlatformMac LIKE 'False' THEN
+	    END IF;
+      IF varUserDevice LIKE 'Linux' AND varPlatformMac LIKE 'False' THEN
         SET varShouldSkip = 'True';
       END IF;
       
       -- insert the games meets the requirment into our new temp table
-      IF varShouldSkip = 'False' THEN
+      IF varShouldSkip = 'False' AND varPrice <= PriceMax THEN
         INSERT INTO GameTable VALUES (varGameId, varGameName, varReleaseDate, varPrice, varSupportedLanguages, varDeveloper, varAvRating);
       END IF;
 

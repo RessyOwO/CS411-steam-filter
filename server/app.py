@@ -14,7 +14,7 @@ from sqlalchemy import text
 
 import db
 from models import User
-active_user = 'test'
+# active_user = 'test'
 load_dotenv()
 
 app = Flask(__name__)
@@ -64,7 +64,7 @@ def login():
     user = User.get(username)
 
     if user and user.password == password:
-        active_user = username
+        # active_user = username
         access_token = create_access_token(identity=username)
         return jsonify(access_token=access_token)
 
@@ -215,11 +215,12 @@ def search():
                 )
         return jsonify(games), 200
     elif search_type == "max_price":
-        request_username = active_user
+        current_user = User.get(get_jwt_identity())
+        # request_username = active_user
         max_price = float(search)
         statement = text(
-            """CALL FindGoodGame(:max_price, :username)"""
-        ).bindparams(max_price=max_price, username=request_username)
+            """CALL FindGoodGame(:max_price, :user_name)"""
+        ).bindparams(max_price=max_price, user_name=current_user.username)
 
         result = db.query(statement).fetchall()
 
