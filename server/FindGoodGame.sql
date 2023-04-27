@@ -1,3 +1,4 @@
+-- this stored procedure finds games that have an avg rating >= 7 and have a price < buget of games, suitable for user's devices and any other devices
 DROP PROCEDURE IF EXISTS 411Project.FindGoodGame;
 CREATE PROCEDURE FindGoodGame(IN PriceMax DOUBLE, IN uname VARCHAR(20))
 BEGIN
@@ -8,14 +9,15 @@ BEGIN
   DECLARE varDeveloper VARCHAR(255);
   DECLARE varSupportedLanguages VARCHAR(512);
   DECLARE varPrice DOUBLE;
-  DECLARE varUserDevice VARCHAR(20);
+  DECLARE varUserDevice VARCHAR(10);
   DECLARE exit_loop BOOLEAN DEFAULT FALSE;
   DECLARE varPlatformWindows VARCHAR(10);
   DECLARE varPlatformLinux VARCHAR(10);
   DECLARE varPlatformMac VARCHAR(10);
   DECLARE varShouldSkip VARCHAR(10) DEFAULT 'False';
 
-  -- select only the good games which have average rating > 7
+  -- select only the good games which have average ratings >= 7
+  -- first advanced relation that uses subquery, aggregation, and join of multiple relations
   DECLARE gameCur CURSOR FOR (SELECT g.GameID, ResponseName, ReleaseDate, PriceFinal, SupportedLanguages, d.Developer, temp.avg_rating, PlatformWindows, PlatformLinux, PlatformMac
         FROM Games g NATURAL JOIN Develops dv NATURAL JOIN Developers d
         NATURAL JOIN (SELECT g.GameID, AVG(r.rating) AS avg_rating
@@ -26,7 +28,7 @@ BEGIN
 
   DECLARE CONTINUE HANDLER FOR NOT FOUND SET exit_loop = TRUE;
 
-  -- get user device for platform filter
+  -- get user device for paltform filter
   SELECT DeviceBackground INTO varUserDevice FROM UserInfo WHERE Username = uname;
 
   -- create a temp table called game table to keep only the desired games
@@ -49,19 +51,16 @@ BEGIN
         LEAVE cloop;
       END IF;
 
-
       -- if the user device is not compatible with this game, we should not recommend it
       IF varUserDevice LIKE 'Windows' AND varPlatformWindows LIKE 'False' THEN
         SET varShouldSkip = 'True';
-	    END IF;
-      IF varUserDevice LIKE 'Mac' AND varPlatformLinux LIKE 'False' THEN
+      ELSEIF varUserDevice LIKE 'Linux' AND varPlatformLinux LIKE 'False' THEN
         SET varShouldSkip = 'True';
-	    END IF;
-      IF varUserDevice LIKE 'Linux' AND varPlatformMac LIKE 'False' THEN
+      ELSEIF varUserDevice LIKE 'Linux' AND varPlatformMac LIKE 'False' THEN
         SET varShouldSkip = 'True';
       END IF;
       
-      -- insert the games meets the requirment into our new temp table
+      -- insert the games that meet the requirements in our new temp table
       IF varShouldSkip = 'False' AND varPrice <= PriceMax THEN
         INSERT INTO GameTable VALUES (varGameId, varGameName, varReleaseDate, varPrice, varSupportedLanguages, varDeveloper, varAvRating);
       END IF;
@@ -71,7 +70,9 @@ BEGIN
   CLOSE gameCur;
 
   -- return the desired format for our frontend presentation
-  SELECT gt.GameID, gt.ResponseName, gt.ReleaseDate, gt.PriceFinal, gt.SupportedLanguages, gt.Developer, gt.Rating,
+  -- 2nd advanced query that used join of multiple relations & subquery & set operations
+  -- subquery is selecting from games that are playable on all three platforms using union (some games are not playable on any of the three platforms, we filter those out)
+SELECT gt.GameID, gt.ResponseName, gt.ReleaseDate, gt.PriceFinal, gt.SupportedLanguages, gt.Developer, gt.Rating,
           CONCAT_WS(',',
            CASE WHEN ControllerSupport = 'True' THEN 'ControllerSupport' ELSE NULL END,
            CASE WHEN IsFree = 'True' THEN 'IsFree' ELSE NULL END,
@@ -103,7 +104,106 @@ BEGIN
            CASE WHEN GenreIsRacing = 'True' THEN 'GenreIsRacing' ELSE NULL END,
            CASE WHEN GenreIsMassivelyMultiplayer = 'True' THEN 'GenreIsMassivelyMultiplayer' ELSE NULL END
           ) as TrueColumns
-  FROM GameTable gt JOIN Games g ON gt.GameID = g.GameID
-  -- we sort the results based on the ratings and the price, finally its name
+  FROM GameTable gt JOIN (SELECT GameID,           
+  CONCAT_WS(',',
+           CASE WHEN ControllerSupport = 'True' THEN 'ControllerSupport' ELSE NULL END,
+           CASE WHEN IsFree = 'True' THEN 'IsFree' ELSE NULL END,
+           CASE WHEN FreeVerAvail = 'True' THEN 'FreeVerAvail' ELSE NULL END,
+           CASE WHEN PurchaseAvail = 'True' THEN 'PurchaseAvail' ELSE NULL END,
+           CASE WHEN SubscriptionAvail = 'True' THEN 'SubscriptionAvail' ELSE NULL END,
+           CASE WHEN PlatformWindows = 'True' THEN 'PlatformWindows' ELSE NULL END,
+           CASE WHEN PlatformLinux = 'True' THEN 'PlatformLinux' ELSE NULL END,
+           CASE WHEN PlatformMac = 'True' THEN 'PlatformMac' ELSE NULL END,
+           CASE WHEN CategorySinglePlayer = 'True' THEN 'CategorySinglePlayer' ELSE NULL END,
+           CASE WHEN CategoryMultiplayer = 'True' THEN 'CategoryMultiplayer' ELSE NULL END,
+           CASE WHEN CategoryCoop = 'True' THEN 'CategoryCoop' ELSE NULL END,
+           CASE WHEN CategoryMMO = 'True' THEN 'CategoryMMO' ELSE NULL END,
+           CASE WHEN CategoryInAppPurchase = 'True' THEN 'CategoryInAppPurchase' ELSE NULL END,
+           CASE WHEN CategoryIncludeSrcSDK = 'True' THEN 'CategoryIncludeSrcSDK' ELSE NULL END,
+           CASE WHEN CategoryIncludeLevelEditor = 'True' THEN 'CategoryIncludeLevelEditor' ELSE NULL END,
+           CASE WHEN CategoryVRSupport = 'True' THEN 'CategoryVRSupport' ELSE NULL END,
+           CASE WHEN GenreIsNonGame = 'True' THEN 'GenreIsNonGame' ELSE NULL END,
+           CASE WHEN GenreIsIndie = 'True' THEN 'GenreIsIndie' ELSE NULL END,
+           CASE WHEN GenreIsAction = 'True' THEN 'GenreIsAction' ELSE NULL END,
+           CASE WHEN GenreIsAdventure = 'True' THEN 'GenreIsAdventure' ELSE NULL END,
+           CASE WHEN GenreIsCasual = 'True' THEN 'GenreIsCasual' ELSE NULL END,
+           CASE WHEN GenreIsStrategy = 'True' THEN 'GenreIsStrategy' ELSE NULL END,
+           CASE WHEN GenreIsRPG = 'True' THEN 'GenreIsRPG' ELSE NULL END,
+           CASE WHEN GenreIsSimulation = 'True' THEN 'GenreIsSimulation' ELSE NULL END,
+           CASE WHEN GenreIsEarlyAccess = 'True' THEN 'GenreIsEarlyAccess' ELSE NULL END,
+           CASE WHEN GenreIsFreeToPlay = 'True' THEN 'GenreIsFreeToPlay' ELSE NULL END,
+           CASE WHEN GenreIsSports = 'True' THEN 'GenreIsSports' ELSE NULL END,
+           CASE WHEN GenreIsRacing = 'True' THEN 'GenreIsRacing' ELSE NULL END,
+           CASE WHEN GenreIsMassivelyMultiplayer = 'True' THEN 'GenreIsMassivelyMultiplayer' ELSE NULL END
+          ) as TrueColumns
+	FROM Games WHERE PlatformWindows = 'True'
+    UNION
+	SELECT GameID,           
+	CONCAT_WS(',',
+           CASE WHEN ControllerSupport = 'True' THEN 'ControllerSupport' ELSE NULL END,
+           CASE WHEN IsFree = 'True' THEN 'IsFree' ELSE NULL END,
+           CASE WHEN FreeVerAvail = 'True' THEN 'FreeVerAvail' ELSE NULL END,
+           CASE WHEN PurchaseAvail = 'True' THEN 'PurchaseAvail' ELSE NULL END,
+           CASE WHEN SubscriptionAvail = 'True' THEN 'SubscriptionAvail' ELSE NULL END,
+           CASE WHEN PlatformWindows = 'True' THEN 'PlatformWindows' ELSE NULL END,
+           CASE WHEN PlatformLinux = 'True' THEN 'PlatformLinux' ELSE NULL END,
+           CASE WHEN PlatformMac = 'True' THEN 'PlatformMac' ELSE NULL END,
+           CASE WHEN CategorySinglePlayer = 'True' THEN 'CategorySinglePlayer' ELSE NULL END,
+           CASE WHEN CategoryMultiplayer = 'True' THEN 'CategoryMultiplayer' ELSE NULL END,
+           CASE WHEN CategoryCoop = 'True' THEN 'CategoryCoop' ELSE NULL END,
+           CASE WHEN CategoryMMO = 'True' THEN 'CategoryMMO' ELSE NULL END,
+           CASE WHEN CategoryInAppPurchase = 'True' THEN 'CategoryInAppPurchase' ELSE NULL END,
+           CASE WHEN CategoryIncludeSrcSDK = 'True' THEN 'CategoryIncludeSrcSDK' ELSE NULL END,
+           CASE WHEN CategoryIncludeLevelEditor = 'True' THEN 'CategoryIncludeLevelEditor' ELSE NULL END,
+           CASE WHEN CategoryVRSupport = 'True' THEN 'CategoryVRSupport' ELSE NULL END,
+           CASE WHEN GenreIsNonGame = 'True' THEN 'GenreIsNonGame' ELSE NULL END,
+           CASE WHEN GenreIsIndie = 'True' THEN 'GenreIsIndie' ELSE NULL END,
+           CASE WHEN GenreIsAction = 'True' THEN 'GenreIsAction' ELSE NULL END,
+           CASE WHEN GenreIsAdventure = 'True' THEN 'GenreIsAdventure' ELSE NULL END,
+           CASE WHEN GenreIsCasual = 'True' THEN 'GenreIsCasual' ELSE NULL END,
+           CASE WHEN GenreIsStrategy = 'True' THEN 'GenreIsStrategy' ELSE NULL END,
+           CASE WHEN GenreIsRPG = 'True' THEN 'GenreIsRPG' ELSE NULL END,
+           CASE WHEN GenreIsSimulation = 'True' THEN 'GenreIsSimulation' ELSE NULL END,
+           CASE WHEN GenreIsEarlyAccess = 'True' THEN 'GenreIsEarlyAccess' ELSE NULL END,
+           CASE WHEN GenreIsFreeToPlay = 'True' THEN 'GenreIsFreeToPlay' ELSE NULL END,
+           CASE WHEN GenreIsSports = 'True' THEN 'GenreIsSports' ELSE NULL END,
+           CASE WHEN GenreIsRacing = 'True' THEN 'GenreIsRacing' ELSE NULL END,
+           CASE WHEN GenreIsMassivelyMultiplayer = 'True' THEN 'GenreIsMassivelyMultiplayer' ELSE NULL END
+          ) as TrueColumns
+	FROM Games WHERE PlatformLinux = 'True'
+    UNION
+	SELECT GameID,           
+	CONCAT_WS(',',
+           CASE WHEN ControllerSupport = 'True' THEN 'ControllerSupport' ELSE NULL END,
+           CASE WHEN IsFree = 'True' THEN 'IsFree' ELSE NULL END,
+           CASE WHEN FreeVerAvail = 'True' THEN 'FreeVerAvail' ELSE NULL END,
+           CASE WHEN PurchaseAvail = 'True' THEN 'PurchaseAvail' ELSE NULL END,
+           CASE WHEN SubscriptionAvail = 'True' THEN 'SubscriptionAvail' ELSE NULL END,
+           CASE WHEN PlatformWindows = 'True' THEN 'PlatformWindows' ELSE NULL END,
+           CASE WHEN PlatformLinux = 'True' THEN 'PlatformLinux' ELSE NULL END,
+           CASE WHEN PlatformMac = 'True' THEN 'PlatformMac' ELSE NULL END,
+           CASE WHEN CategorySinglePlayer = 'True' THEN 'CategorySinglePlayer' ELSE NULL END,
+           CASE WHEN CategoryMultiplayer = 'True' THEN 'CategoryMultiplayer' ELSE NULL END,
+           CASE WHEN CategoryCoop = 'True' THEN 'CategoryCoop' ELSE NULL END,
+           CASE WHEN CategoryMMO = 'True' THEN 'CategoryMMO' ELSE NULL END,
+           CASE WHEN CategoryInAppPurchase = 'True' THEN 'CategoryInAppPurchase' ELSE NULL END,
+           CASE WHEN CategoryIncludeSrcSDK = 'True' THEN 'CategoryIncludeSrcSDK' ELSE NULL END,
+           CASE WHEN CategoryIncludeLevelEditor = 'True' THEN 'CategoryIncludeLevelEditor' ELSE NULL END,
+           CASE WHEN CategoryVRSupport = 'True' THEN 'CategoryVRSupport' ELSE NULL END,
+           CASE WHEN GenreIsNonGame = 'True' THEN 'GenreIsNonGame' ELSE NULL END,
+           CASE WHEN GenreIsIndie = 'True' THEN 'GenreIsIndie' ELSE NULL END,
+           CASE WHEN GenreIsAction = 'True' THEN 'GenreIsAction' ELSE NULL END,
+           CASE WHEN GenreIsAdventure = 'True' THEN 'GenreIsAdventure' ELSE NULL END,
+           CASE WHEN GenreIsCasual = 'True' THEN 'GenreIsCasual' ELSE NULL END,
+           CASE WHEN GenreIsStrategy = 'True' THEN 'GenreIsStrategy' ELSE NULL END,
+           CASE WHEN GenreIsRPG = 'True' THEN 'GenreIsRPG' ELSE NULL END,
+           CASE WHEN GenreIsSimulation = 'True' THEN 'GenreIsSimulation' ELSE NULL END,
+           CASE WHEN GenreIsEarlyAccess = 'True' THEN 'GenreIsEarlyAccess' ELSE NULL END,
+           CASE WHEN GenreIsFreeToPlay = 'True' THEN 'GenreIsFreeToPlay' ELSE NULL END,
+           CASE WHEN GenreIsSports = 'True' THEN 'GenreIsSports' ELSE NULL END,
+           CASE WHEN GenreIsRacing = 'True' THEN 'GenreIsRacing' ELSE NULL END,
+           CASE WHEN GenreIsMassivelyMultiplayer = 'True' THEN 'GenreIsMassivelyMultiplayer' ELSE NULL END
+          ) as TrueColumns
+	FROM Games WHERE PlatformMac = 'True') as temp ON gt.GameID=temp.GameID JOIN Games g on temp.GameID=g.GameID
   ORDER BY Rating DESC, PriceFinal DESC, ResponseName;
-END;
+END
