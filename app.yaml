@@ -1,0 +1,13 @@
+runtime: python39
+
+handlers:
+- url: /.*
+  script: auto
+
+- url: /(.*\.(json|js|css|png|jpg|jpeg|gif|ico|woff|woff2|ttf|svg|eot))$
+  static_files: client/\1
+  upload: client/(.*\.(json|js|css|png|jpg|jpeg|gif|ico|woff|woff2|ttf|svg|eot))$
+
+- url: /.*
+  static_files: client/index.html
+  upload: client/index.html
