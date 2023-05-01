@@ -1,4 +1,7 @@
 # sp23-cs411-team053-anti-dance-club
+
+[Demo Video](https://drive.google.com/file/d/1ROOEpnXWP2IzgVAjhEXNLfTjhBGam6Pb/view?usp=sharing)
+
 How to run:
 
 git clone https://github.com/cs411-alawini/sp23-cs411-team053-anti-dance-club.git
